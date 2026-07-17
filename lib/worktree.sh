@@ -100,7 +100,7 @@ build_reference() {
     # overwrite. Cost: one extra full-tree hash during reference build —
     # paid once per tree SHA and amortised across every warm add.
     if ! GIT_INDEX_FILE="$pre_index" git -C "$repo" read-tree "$tree_sha" \
-        || ! GIT_INDEX_FILE="$pre_index" git -C "$repo" \
+        || ! GIT_INDEX_FILE="$pre_index" GIT_WORK_TREE="$tmp" git -C "$repo" \
                checkout-index --all --prefix="$tmp/"; then
         rm -rf "$tmp"
         rm -f "$pre_index"
