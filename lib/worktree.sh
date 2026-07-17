@@ -100,7 +100,7 @@ build_reference() {
     # overwrite. Cost: one extra full-tree hash during reference build —
     # paid once per tree SHA and amortised across every warm add.
     if ! GIT_INDEX_FILE="$pre_index" git -C "$repo" read-tree "$tree_sha" \
-        || ! GIT_INDEX_FILE="$pre_index" git -C "$repo" \
+        || ! GIT_INDEX_FILE="$pre_index" GIT_WORK_TREE="$tmp" git -C "$repo" \
                checkout-index --all --prefix="$tmp/"; then
         rm -rf "$tmp"
         rm -f "$pre_index"
@@ -127,6 +127,7 @@ default_mountpoint() {
 configure_worktree_stat() {
     local repo="$1" mountpoint="$2"
     git -C "$repo" config extensions.worktreeConfig true
+    git -C "$mountpoint" config --worktree core.bare false
     git -C "$mountpoint" config --worktree core.checkStat minimal
     git -C "$mountpoint" config --worktree core.trustctime false
 }
@@ -376,8 +377,7 @@ cmd_list() {
 select_session() {
     local repo="$1" prompt="${2:-select worktree: }"
     local list
-    list=$(git -C "$repo" worktree list --porcelain \
-        | awk '/^worktree / { print substr($0, 10) }')
+    list=$(_list_worktree_paths "$repo")
     [[ -n "$list" ]] || { echo "no worktrees" >&2; return 1; }
     # --select-1 short-circuits fzf when there's only one candidate (no
     # UI, no /dev/tty open) — covers the 80 % daily case where the user
@@ -396,16 +396,22 @@ _require_interactive_or_die() {
         {
             echo "gh-wt: GH_WT_NONINTERACTIVE=1 — refusing to spawn fzf."
             echo "candidate worktrees (pass --at <branch|path> to pick):"
-            git -C "$repo" worktree list --porcelain 2>/dev/null \
-                | awk '/^worktree / { print "  " substr($0, 10) }'
+            _list_worktree_paths "$repo" | sed 's/^/  /'
         } >&2
         exit 2
     fi
 }
 
 _list_worktree_paths() {
-    git -C "$1" worktree list --porcelain \
-        | awk '/^worktree / { print substr($0, 10) }'
+    # Filter out the bare repo entry (flagged `bare` in porcelain output)
+    # so fzf pickers and --at resolution never surface it as a target.
+    git -C "$1" worktree list --porcelain 2>/dev/null \
+        | awk '
+            /^worktree / { wt = substr($0, 10); bare = 0 }
+            /^bare$/     { bare = 1 }
+            /^$/         { if (!bare && wt != "") print wt; wt = ""; bare = 0 }
+            END          { if (!bare && wt != "") print wt }
+        '
 }
 
 # Match user input against an existing linked worktree. Accepts:
