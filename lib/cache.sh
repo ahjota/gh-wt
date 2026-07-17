@@ -55,7 +55,13 @@ main_repo() {
     common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null) \
         || return 1
     [[ -n "$common" ]] || return 1
-    dirname "$common"
+    # For bare repos the common-dir IS the repo (no .git subdir), so
+    # dirname would strip one level too high. Return it directly.
+    if [[ "$(git -C "$common" rev-parse --is-bare-repository 2>/dev/null)" == "true" ]]; then
+        echo "$common"
+    else
+        dirname "$common"
+    fi
 }
 
 require_main_repo() {
