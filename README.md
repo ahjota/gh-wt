@@ -39,6 +39,11 @@ gh extension install HikaruEgashira/gh-wt
 gh skill install HikaruEgashira/gh-wt gh-wt
 ```
 
+> **Fork note:** This fork adds bare-repository support. Install it instead:
+> ```bash
+> gh extension install ahjota/gh-wt
+> ```
+
 ## Usage
 
 ```bash
@@ -77,6 +82,34 @@ gh wt code
 # Run a command inside a selected worktree
 gh wt -- claude
 ```
+
+### Bare repositories
+
+`gh wt` supports both normal (non-bare) clones and bare repositories.
+With a bare repo, worktrees are created as sibling directories and
+share the same CoW disk benefits:
+
+```bash
+git clone --bare https://github.com/owner/repo.git ~/src/owner/repo
+cd ~/src/owner/repo
+gh wt add main           # first add: cold (builds APFS/OverlayFS reference)
+gh wt add feature-x      # warm add: clonefile from main's reference
+gh wt add feature-y      # warm add: same reference, ~constant disk
+```
+
+Resulting layout:
+
+```
+~/src/owner/
+  repo/        # bare git dir (objects, refs, config)
+  main/        # worktree (CoW-backed)
+  feature-x/   # worktree (CoW-backed, shares blocks with main)
+  feature-y/   # worktree (CoW-backed, shares blocks with main)
+```
+
+The bare repo directory itself is filtered out of the fzf picker and
+`--at` resolution, so it can never be accidentally selected as a target
+for `remove`, `exec`, or other operations.
 
 ## Requirements
 
