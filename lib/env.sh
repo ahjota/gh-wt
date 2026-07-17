@@ -54,10 +54,8 @@ check_overlay_fs() {
 
 check_repo_sanity() {
     local repo="$1"
-    local is_bare
-    is_bare=$(git -C "$repo" rev-parse --is-bare-repository 2>/dev/null) \
+    git -C "$repo" rev-parse --is-bare-repository >/dev/null 2>&1 \
         || die "not inside a git repository"
-    [[ "$is_bare" == "false" ]] || die "bare repositories are not supported"
 }
 
 check_branch_no_submodules() {
