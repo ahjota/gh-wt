@@ -127,6 +127,7 @@ default_mountpoint() {
 configure_worktree_stat() {
     local repo="$1" mountpoint="$2"
     git -C "$repo" config extensions.worktreeConfig true
+    git -C "$mountpoint" config --worktree core.bare false
     git -C "$mountpoint" config --worktree core.checkStat minimal
     git -C "$mountpoint" config --worktree core.trustctime false
 }
