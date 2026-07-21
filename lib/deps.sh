@@ -49,6 +49,7 @@ deps_detect_gitignore_dirs() {
         [[ -z "$line" ]] && continue
         [[ -d "$parent/$line" ]] && printf '%s\n' "$line"
     done <<<"$content"
+    return 0
 }
 
 # Link parent dep dirs into the worktree. Never clobbers an existing dst.
@@ -58,8 +59,8 @@ link_parent_deps() {
 
     local targets
     targets=$({
-        deps_detect_lang_dirs "$parent"
-        deps_detect_gitignore_dirs "$worktree" "$parent"
+        deps_detect_lang_dirs "$parent" || true
+        deps_detect_gitignore_dirs "$worktree" "$parent" || true
     } | sort -u)
     [[ -n "$targets" ]] || return 0
 
